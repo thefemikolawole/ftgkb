@@ -1,0 +1,64 @@
+Run Terraform init, validate, and plan on pull requests
+Run terraform apply on push to main
+Use Azure service principal for secure authentication
+Store Terraform state in Azure Storage backend
+
+Step 1: Create Azure Credentials for GitHub
+In Azure CLI:
+
+az ad sp create-for-rbac --name "github-terraform-sp" --role="Contributor" \
+  --scopes="/subscriptions/<SUBSCRIPTION_ID>" --sdk-auth
+
+(Copy the JSON output — you'll use it in GitHub Secrets as AZURE_CREDENTIALS)
+
+Step 2: Store Secrets in GitHub
+Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret:
+
+Secret Name	Value (from Azure CLI)
+AZURE_CREDENTIALS	Output of --sdk-auth JSON
+
+Step 3: Add GitHub Actions Workflow
+Create the file:
+
+name: Terraform CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CREDENTIALS }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CREDENTIALS }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_CREDENTIALS }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_CREDENTIALS }}
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      run: terraform plan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve
