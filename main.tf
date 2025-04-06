@@ -185,11 +185,11 @@ module "rbac" {
 }
 
 module "backup" {
-  source              = "./modules/backup"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.core.name
-  recovery_vault_name = var.recovery_vault_name
-  vm_id               = module.windows_vm.vm_id
+  source                = "./modules/backup"
+  location              = var.location
+  resource_group_name   = azurerm_resource_group.core.name
+  recovery_vault_name   = var.recovery_vault_name
+  vm_id                 = module.windows_vm.vm_id
 }
 
 // ----------------------
